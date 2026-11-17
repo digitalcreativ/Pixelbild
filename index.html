@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixelbilder</title>
+  <style>
+    :root {
+      --rastergroesse: 19;       /* Anzahl Felder pro Zeile/Spalte (wird per JavaScript gesetzt) */
+      /* Grösse eines Feldes: höchstens 28px, auf kleinen Bildschirmen kleiner */
+      --feldgroesse: min(28px, calc((100vw - 60px) / var(--rastergroesse)));
+      --linienfarbe: #c8c8c8;
+      --hintergrund: #f4f4f4;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px 16px;
+      font-family: system-ui, sans-serif;
+      background: var(--hintergrund);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin: 0 0 16px;
+    }
+
+    /* ---------- Werkzeugleiste ---------- */
+    #werkzeuge {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      max-width: 560px;
+    }
+
+    .farbe {
+      width: 32px;
+      height: 32px;
+      border: 2px solid #888;
+      border-radius: 6px;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .farbe.aktiv {
+      outline: 3px solid #4a90e2;
+      outline-offset: 2px;
+    }
+
+    #eigeneFarbe {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    button.text {
+      padding: 6px 12px;
+      font-size: 0.95rem;
+      border: 1px solid #888;
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    button.text:hover { background: #eaeaea; }
+
+    #radierer.aktiv {
+      outline: 3px solid #4a90e2;
+      outline-offset: 2px;
+      background: #e8f1fc;
+    }
+
+    #palette {
+      display: grid;
+      grid-template-columns: repeat(10, 32px);
+      gap: 8px;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .zeile {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    @media (max-width: 420px) {
+      #palette { grid-template-columns: repeat(5, 32px); }
+    }
+
+    label { font-size: 0.95rem; cursor: pointer; }
+
+    /* ---------- Raster ---------- */
+    #raster {
+      display: grid;
+      grid-template-columns: repeat(var(--rastergroesse), var(--feldgroesse));
+      grid-template-rows: repeat(var(--rastergroesse), var(--feldgroesse));
+      gap: 1px;
+      background: var(--linienfarbe);   /* bildet die Rasterlinien */
+      border: 1px solid var(--linienfarbe);
+      max-width: 100%;
+      touch-action: none;               /* Malen mit Finger ohne Scrollen */
+      user-select: none;
+      cursor: crosshair;
+    }
+
+    .feld {
+      background: #ffffff;
+    }
+
+    .feld:hover {
+      outline: 2px solid #4a90e2;
+      outline-offset: -2px;
+    }
+
+    /* Hilfslinien: mittlere Zeile und Spalte leicht markieren */
+    #raster.mitte .feld.mittellinie {
+      box-shadow: inset 0 0 0 100px rgba(74, 144, 226, 0.15);
+    }
+
+    select {
+      font-size: 0.95rem;
+      padding: 4px 6px;
+      border: 1px solid #888;
+      border-radius: 6px;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pixelbilder</h1>
+
+  <div id="werkzeuge">
+    <!-- Farbknöpfe werden per JavaScript erzeugt -->
+    <div id="palette"></div>
+    <div class="zeile">
+      <input type="color" id="eigeneFarbe" value="#8a2be2" title="Eigene Farbe wählen">
+      <button class="text" id="radierer" title="Felder wieder weiss machen">🧽 Radiergummi</button>
+      <button class="text" id="loeschen">🗑️ Alles löschen</button>
+    </div>
+    <div class="zeile">
+      <button class="text" id="exportieren">💾 Als PNG speichern</button>
+      <label><input type="checkbox" id="linienExport"> mit Rasterlinien</label>
+    </div>
+    <div class="zeile">
+      <label for="groesseWahl">Rastergrösse:</label>
+      <select id="groesseWahl">
+        <option value="15">15 × 15</option>
+        <option value="19" selected>19 × 19</option>
+        <option value="25">25 × 25</option>
+        <option value="31">31 × 31</option>
+      </select>
+      <label><input type="checkbox" id="mitteAnzeigen"> Mitte anzeigen</label>
+    </div>
+  </div>
+
+  <div id="raster"></div>
+
+  <script>
+    let groesse = 19;                         // Anzahl Felder pro Zeile/Spalte
+    const WEISS = '#ffffff';
+
+    // 20 Malfarben (2 Reihen à 10)
+    const FARBEN = [
+      { wert: '#000000', name: 'Schwarz' },
+      { wert: '#8a8a8a', name: 'Grau' },
+      { wert: '#8d5524', name: 'Braun' },
+      { wert: '#f1c27d', name: 'Hautfarbe' },
+      { wert: '#9b2226', name: 'Dunkelrot' },
+      { wert: '#e63946', name: 'Rot' },
+      { wert: '#ff8fab', name: 'Rosa' },
+      { wert: '#d63384', name: 'Pink' },
+      { wert: '#f77f00', name: 'Orange' },
+      { wert: '#ffd60a', name: 'Gelb' },
+      { wert: '#fff3a3', name: 'Hellgelb' },
+      { wert: '#80ed99', name: 'Hellgrün' },
+      { wert: '#38b000', name: 'Grün' },
+      { wert: '#1b5e20', name: 'Dunkelgrün' },
+      { wert: '#2ec4b6', name: 'Türkis' },
+      { wert: '#74c0fc', name: 'Hellblau' },
+      { wert: '#1d4ed8', name: 'Blau' },
+      { wert: '#1e2a78', name: 'Dunkelblau' },
+      { wert: '#7b2cbf', name: 'Violett' },
+      { wert: '#c8a2ff', name: 'Flieder' },
+    ];
+
+    let aktuelleFarbe = FARBEN[0].wert;
+    let maltGerade = false;
+
+    const raster = document.getElementById('raster');
+    const palette = document.getElementById('palette');
+    const eigeneFarbe = document.getElementById('eigeneFarbe');
+
+    // ---------- Farbpalette ----------
+    function farbeWaehlen(wert, knopf) {
+      aktuelleFarbe = wert;
+      document.querySelectorAll('.farbe, #radierer').forEach(k => k.classList.remove('aktiv'));
+      if (knopf) knopf.classList.add('aktiv');
+    }
+
+    // Radiergummi: malt das Feld wieder weiss
+    const radierer = document.getElementById('radierer');
+    radierer.addEventListener('click', () => farbeWaehlen(WEISS, radierer));
+
+    FARBEN.forEach((f, i) => {
+      const knopf = document.createElement('button');
+      knopf.className = 'farbe' + (i === 0 ? ' aktiv' : '');
+      knopf.style.background = f.wert;
+      knopf.title = f.name;
+      knopf.addEventListener('click', () => farbeWaehlen(f.wert, knopf));
+      palette.appendChild(knopf);
+    });
+
+    eigeneFarbe.addEventListener('input', () => farbeWaehlen(eigeneFarbe.value, null));
+
+    // ---------- Raster erzeugen (z.B. 19 x 19 = 361 Felder) ----------
+    function rasterAufbauen(n) {
+      groesse = n;
+      const mitte = Math.floor(n / 2);   // bei 19 = 9 (die 10. Zeile/Spalte)
+      document.documentElement.style.setProperty('--rastergroesse', n);
+      raster.innerHTML = '';
+      for (let zeile = 0; zeile < n; zeile++) {
+        for (let spalte = 0; spalte < n; spalte++) {
+          const feld = document.createElement('div');
+          feld.className = 'feld';
+          if (zeile === mitte || spalte === mitte) feld.classList.add('mittellinie');
+          feld.dataset.zeile = zeile;
+          feld.dataset.spalte = spalte;
+          feld.title = `Zeile ${zeile + 1}, Spalte ${spalte + 1}`;
+          raster.appendChild(feld);
+        }
+      }
+    }
+
+    // Wurde schon etwas gemalt?
+    function hatInhalt() {
+      return [...document.querySelectorAll('.feld')].some(f =>
+        f.style.background && f.style.background !== 'rgb(255, 255, 255)' && f.style.background !== WEISS);
+    }
+
+    const groesseWahl = document.getElementById('groesseWahl');
+    groesseWahl.addEventListener('change', () => {
+      const neu = Number(groesseWahl.value);
+      if (hatInhalt() && !confirm('Beim Ändern der Rastergrösse wird das Bild gelöscht. Trotzdem ändern?')) {
+        groesseWahl.value = groesse;   // Auswahl zurücksetzen
+        return;
+      }
+      rasterAufbauen(neu);
+    });
+
+    rasterAufbauen(groesse);
+
+    // ---------- Malen (Klicken oder mit gedrückter Maus/Finger ziehen) ----------
+    function malen(feld) {
+      if (feld && feld.classList.contains('feld')) {
+        feld.style.background = aktuelleFarbe;
+      }
+    }
+
+    raster.addEventListener('pointerdown', e => {
+      maltGerade = true;
+      raster.releasePointerCapture?.(e.pointerId);  // wichtig für Touch
+      malen(e.target);
+    });
+
+    raster.addEventListener('pointermove', e => {
+      if (!maltGerade) return;
+      malen(document.elementFromPoint(e.clientX, e.clientY));
+    });
+
+    window.addEventListener('pointerup', () => { maltGerade = false; });
+    window.addEventListener('pointercancel', () => { maltGerade = false; });
+
+    // ---------- Buttons ----------
+    document.getElementById('loeschen').addEventListener('click', () => {
+      if (confirm('Wirklich das ganze Bild löschen?')) {
+        document.querySelectorAll('.feld').forEach(f => f.style.background = WEISS);
+      }
+    });
+
+    // ---------- Export als PNG ----------
+    document.getElementById('exportieren').addEventListener('click', () => {
+      const PIXEL = 20;   // jedes Feld wird im Bild 20 x 20 Pixel gross
+      const mitLinien = document.getElementById('linienExport').checked;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = groesse * PIXEL;
+      canvas.height = groesse * PIXEL;
+      const ctx = canvas.getContext('2d');
+
+      document.querySelectorAll('.feld').forEach(feld => {
+        const x = feld.dataset.spalte * PIXEL;
+        const y = feld.dataset.zeile * PIXEL;
+        ctx.fillStyle = feld.style.background || WEISS;
+        ctx.fillRect(x, y, PIXEL, PIXEL);
+        if (mitLinien) {
+          ctx.strokeStyle = '#c8c8c8';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x + 0.5, y + 0.5, PIXEL - 1, PIXEL - 1);
+        }
+      });
+
+      // Bild als Datei herunterladen
+      canvas.toBlob(blob => {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'pixelbild.png';
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      }, 'image/png');
+    });
+
+    document.getElementById('mitteAnzeigen').addEventListener('change', e => {
+      raster.classList.toggle('mitte', e.target.checked);
+    });
+  </script>
+</body>
+</html>

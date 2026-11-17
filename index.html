@@ -7,15 +7,19 @@
   <style>
     :root {
       --rastergroesse: 19;       /* Anzahl Felder pro Zeile/Spalte (wird per JavaScript gesetzt) */
-      /* Grösse eines Feldes: höchstens 28px, auf kleinen Bildschirmen kleiner */
-      --feldgroesse: min(28px, calc((100vw - 60px) / var(--rastergroesse)));
-      --linienfarbe: #c8c8c8;
+      /* Grösse eines Feldes: höchstens 28px, sonst so gross, dass das Raster
+         zwischen die Seitenleisten und auf die Bildschirmhöhe passt */
+      --feldgroesse: min(28px,
+                         calc((100vw - 440px) / var(--rastergroesse) - 1px),
+                         calc((100vh - 90px) / var(--rastergroesse) - 1px));
+      --linienfarbe: #bdbdbd;
+      --leer: #e9e9e9;           /* Farbe der leeren (ungemalten) Felder */
       --hintergrund: #f4f4f4;
     }
 
     body {
       margin: 0;
-      padding: 24px 16px;
+      padding: 12px 16px;
       font-family: system-ui, sans-serif;
       background: var(--hintergrund);
       display: flex;
@@ -24,19 +28,41 @@
     }
 
     h1 {
-      font-size: 1.6rem;
-      margin: 0 0 16px;
+      font-size: 1.5rem;
+      margin: 0 0 12px;
     }
 
-    /* ---------- Werkzeugleiste ---------- */
-    #werkzeuge {
+    h2 {
+      font-size: 1rem;
+      margin: 0 0 4px;
+      color: #555;
+    }
+
+    /* ---------- Aufbau: Farben links, Raster Mitte, Werkzeuge rechts ---------- */
+    #arbeitsflaeche {
       display: flex;
-      flex-wrap: wrap;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
+      gap: 24px;
+    }
+
+    .leiste {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    #rechts { width: 170px; }
+
+    /* ---------- Farben ---------- */
+    #palette {
+      display: grid;
+      grid-template-columns: repeat(3, 32px);
       gap: 8px;
-      margin-bottom: 16px;
-      max-width: 560px;
     }
 
     .farbe {
@@ -48,9 +74,16 @@
       padding: 0;
     }
 
-    .farbe.aktiv {
+    .farbe.aktiv, #eigeneFarbe.aktiv, #radierer.aktiv {
       outline: 3px solid #4a90e2;
       outline-offset: 2px;
+    }
+
+    .eigene {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
     }
 
     #eigeneFarbe {
@@ -62,44 +95,38 @@
       padding: 0;
     }
 
+    /* ---------- Werkzeuge ---------- */
     button.text {
-      padding: 6px 12px;
+      padding: 7px 10px;
       font-size: 0.95rem;
       border: 1px solid #888;
       border-radius: 6px;
       background: #fff;
       cursor: pointer;
+      text-align: left;
     }
 
     button.text:hover { background: #eaeaea; }
 
-    #radierer.aktiv {
-      outline: 3px solid #4a90e2;
-      outline-offset: 2px;
-      background: #e8f1fc;
-    }
+    #radierer.aktiv { background: #e8f1fc; }
 
-    #palette {
-      display: grid;
-      grid-template-columns: repeat(10, 32px);
-      gap: 8px;
-      justify-content: center;
+    label { font-size: 0.95rem; cursor: pointer; }
+
+    select {
+      font-size: 0.95rem;
+      padding: 4px 6px;
+      border: 1px solid #888;
+      border-radius: 6px;
+      background: #fff;
       width: 100%;
     }
 
-    .zeile {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+    hr {
+      border: none;
+      border-top: 1px solid #ddd;
+      margin: 2px 0;
+      width: 100%;
     }
-
-    @media (max-width: 420px) {
-      #palette { grid-template-columns: repeat(5, 32px); }
-    }
-
-    label { font-size: 0.95rem; cursor: pointer; }
 
     /* ---------- Raster ---------- */
     #raster {
@@ -109,14 +136,14 @@
       gap: 1px;
       background: var(--linienfarbe);   /* bildet die Rasterlinien */
       border: 1px solid var(--linienfarbe);
-      max-width: 100%;
       touch-action: none;               /* Malen mit Finger ohne Scrollen */
       user-select: none;
       cursor: crosshair;
+      flex-shrink: 0;
     }
 
     .feld {
-      background: #ffffff;
+      background: var(--leer);
     }
 
     .feld:hover {
@@ -126,54 +153,78 @@
 
     /* Hilfslinien: mittlere Zeile und Spalte leicht markieren */
     #raster.mitte .feld.mittellinie {
-      box-shadow: inset 0 0 0 100px rgba(74, 144, 226, 0.15);
+      box-shadow: inset 0 0 0 100px rgba(74, 144, 226, 0.18);
     }
 
-    select {
-      font-size: 0.95rem;
-      padding: 4px 6px;
-      border: 1px solid #888;
-      border-radius: 6px;
-      background: #fff;
+    /* ---------- Schmale Bildschirme (Handy, iPad hochkant): untereinander ---------- */
+    @media (max-width: 860px) {
+      :root {
+        --feldgroesse: min(28px, calc((100vw - 40px) / var(--rastergroesse) - 1px));
+      }
+      #arbeitsflaeche {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+      #palette { grid-template-columns: repeat(7, 32px); }
+      .leiste { align-items: center; }
+      #rechts {
+        width: auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      #rechts h2, #rechts hr { display: none; }
+      select { width: auto; }
     }
   </style>
 </head>
 <body>
   <h1>Pixelbilder</h1>
 
-  <div id="werkzeuge">
-    <!-- Farbknöpfe werden per JavaScript erzeugt -->
-    <div id="palette"></div>
-    <div class="zeile">
-      <input type="color" id="eigeneFarbe" value="#8a2be2" title="Eigene Farbe wählen">
-      <button class="text" id="radierer" title="Felder wieder weiss machen">🧽 Radiergummi</button>
+  <div id="arbeitsflaeche">
+
+    <!-- Links: Farben -->
+    <aside class="leiste" id="links">
+      <h2>Farben</h2>
+      <div id="palette"><!-- Farbknöpfe werden per JavaScript erzeugt --></div>
+      <label class="eigene" title="Eigene Farbe wählen">
+        <input type="color" id="eigeneFarbe" value="#8a2be2"> eigene Farbe
+      </label>
+    </aside>
+
+    <!-- Mitte: Raster -->
+    <div id="raster"></div>
+
+    <!-- Rechts: Werkzeuge -->
+    <aside class="leiste" id="rechts">
+      <h2>Werkzeuge</h2>
+      <button class="text" id="radierer" title="Felder wieder leer machen">🧽 Radiergummi</button>
       <button class="text" id="loeschen">🗑️ Alles löschen</button>
-    </div>
-    <div class="zeile">
-      <button class="text" id="exportieren">💾 Als PNG speichern</button>
-      <label><input type="checkbox" id="linienExport"> mit Rasterlinien</label>
-    </div>
-    <div class="zeile">
-      <label for="groesseWahl">Rastergrösse:</label>
-      <select id="groesseWahl">
+      <hr>
+      <h2>Raster</h2>
+      <select id="groesseWahl" title="Rastergrösse">
         <option value="15">15 × 15</option>
         <option value="19" selected>19 × 19</option>
         <option value="25">25 × 25</option>
         <option value="31">31 × 31</option>
       </select>
       <label><input type="checkbox" id="mitteAnzeigen"> Mitte anzeigen</label>
-    </div>
-  </div>
+      <hr>
+      <h2>Speichern</h2>
+      <button class="text" id="exportieren">💾 Als PNG speichern</button>
+      <label><input type="checkbox" id="linienExport"> mit Rasterlinien</label>
+    </aside>
 
-  <div id="raster"></div>
+  </div>
 
   <script>
     let groesse = 19;                         // Anzahl Felder pro Zeile/Spalte
-    const WEISS = '#ffffff';
 
-    // 20 Malfarben (2 Reihen à 10)
+    // 21 Malfarben (inkl. Weiss – leere Felder sind hellgrau)
     const FARBEN = [
       { wert: '#000000', name: 'Schwarz' },
+      { wert: '#ffffff', name: 'Weiss' },
       { wert: '#8a8a8a', name: 'Grau' },
       { wert: '#8d5524', name: 'Braun' },
       { wert: '#f1c27d', name: 'Hautfarbe' },
@@ -195,7 +246,7 @@
       { wert: '#c8a2ff', name: 'Flieder' },
     ];
 
-    let aktuelleFarbe = FARBEN[0].wert;
+    let aktuelleFarbe = FARBEN[0].wert;       // null = Radiergummi (Feld leeren)
     let maltGerade = false;
 
     const raster = document.getElementById('raster');
@@ -205,13 +256,13 @@
     // ---------- Farbpalette ----------
     function farbeWaehlen(wert, knopf) {
       aktuelleFarbe = wert;
-      document.querySelectorAll('.farbe, #radierer').forEach(k => k.classList.remove('aktiv'));
+      document.querySelectorAll('.farbe, #radierer, #eigeneFarbe').forEach(k => k.classList.remove('aktiv'));
       if (knopf) knopf.classList.add('aktiv');
     }
 
-    // Radiergummi: malt das Feld wieder weiss
+    // Radiergummi: macht das Feld wieder leer (hellgrau)
     const radierer = document.getElementById('radierer');
-    radierer.addEventListener('click', () => farbeWaehlen(WEISS, radierer));
+    radierer.addEventListener('click', () => farbeWaehlen(null, radierer));
 
     FARBEN.forEach((f, i) => {
       const knopf = document.createElement('button');
@@ -222,7 +273,7 @@
       palette.appendChild(knopf);
     });
 
-    eigeneFarbe.addEventListener('input', () => farbeWaehlen(eigeneFarbe.value, null));
+    eigeneFarbe.addEventListener('input', () => farbeWaehlen(eigeneFarbe.value, eigeneFarbe));
 
     // ---------- Raster erzeugen (z.B. 19 x 19 = 361 Felder) ----------
     function rasterAufbauen(n) {
@@ -244,10 +295,9 @@
     }
 
     // ---------- Bild beim Ändern der Rastergrösse anpassen ----------
-    // Farbe eines Feldes lesen (null = weiss / leer)
+    // Farbe eines Feldes lesen (null = leer)
     function farbeVon(feld) {
-      const c = feld.style.backgroundColor;
-      return (!c || c === 'rgb(255, 255, 255)') ? null : c;
+      return feld.style.backgroundColor || null;
     }
 
     // Aktuelles Bild als Liste von Farben speichern
@@ -257,7 +307,7 @@
 
     // Bild von alter auf neue Grösse umrechnen:
     // Jedes neue Feld schaut, welche alten Felder es überdeckt (und wie stark).
-    // Ist mindestens 30 % davon farbig, bekommt es die häufigste Farbe, sonst bleibt es weiss.
+    // Ist mindestens 30 % davon bemalt, bekommt es die häufigste Farbe, sonst bleibt es leer.
     function bildSkalieren(alt, n) {
       const N = alt.n;
       const faktor = N / n;
@@ -267,7 +317,7 @@
           const y0 = z * faktor, y1 = (z + 1) * faktor;
           const x0 = s * faktor, x1 = (s + 1) * faktor;
           const anteile = {};
-          let farbig = 0;
+          let bemalt = 0;
           for (let az = Math.floor(y0); az < Math.min(N, Math.ceil(y1)); az++) {
             const h = Math.min(y1, az + 1) - Math.max(y0, az);
             for (let as = Math.floor(x0); as < Math.min(N, Math.ceil(x1)); as++) {
@@ -275,7 +325,7 @@
               const c = alt.farben[az * N + as];
               if (c) {
                 anteile[c] = (anteile[c] || 0) + w * h;
-                farbig += w * h;
+                bemalt += w * h;
               }
             }
           }
@@ -283,7 +333,7 @@
           for (const c in anteile) {
             if (anteile[c] > max) { max = anteile[c]; beste = c; }
           }
-          neu.push(farbig >= 0.3 * faktor * faktor ? beste : null);
+          neu.push(bemalt >= 0.3 * faktor * faktor ? beste : null);
         }
       }
       return neu;
@@ -311,7 +361,7 @@
     // ---------- Malen (Klicken oder mit gedrückter Maus/Finger ziehen) ----------
     function malen(feld) {
       if (feld && feld.classList.contains('feld')) {
-        feld.style.background = aktuelleFarbe;
+        feld.style.background = aktuelleFarbe || '';   // '' = leer (hellgrau)
         geaendert = true;
       }
     }
@@ -333,12 +383,12 @@
     // ---------- Buttons ----------
     document.getElementById('loeschen').addEventListener('click', () => {
       if (confirm('Wirklich das ganze Bild löschen?')) {
-        document.querySelectorAll('.feld').forEach(f => f.style.background = WEISS);
+        document.querySelectorAll('.feld').forEach(f => f.style.background = '');
         geaendert = true;
       }
     });
 
-    // ---------- Export als PNG ----------
+    // ---------- Export als PNG (leere Felder werden durchsichtig) ----------
     document.getElementById('exportieren').addEventListener('click', () => {
       const PIXEL = 20;   // jedes Feld wird im Bild 20 x 20 Pixel gross
       const mitLinien = document.getElementById('linienExport').checked;
@@ -351,8 +401,11 @@
       document.querySelectorAll('.feld').forEach(feld => {
         const x = feld.dataset.spalte * PIXEL;
         const y = feld.dataset.zeile * PIXEL;
-        ctx.fillStyle = feld.style.background || WEISS;
-        ctx.fillRect(x, y, PIXEL, PIXEL);
+        const farbe = farbeVon(feld);
+        if (farbe) {
+          ctx.fillStyle = farbe;
+          ctx.fillRect(x, y, PIXEL, PIXEL);
+        }
         if (mitLinien) {
           ctx.strokeStyle = '#c8c8c8';
           ctx.lineWidth = 1;

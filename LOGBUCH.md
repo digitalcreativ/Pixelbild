@@ -53,5 +53,16 @@ Repository: https://github.com/digitalcreativ/Pixelbild
 
 **Stolperstein:** Nach dem Push erschien weiterhin die alte Meldung «Bild wird gelöscht». Grund: Der Browser zeigte noch die alte Version (alte Kopie im OneDrive-Ordner bzw. zwischengespeicherte Webseite). Lösung: alte Kopie durch die neue Version ersetzt; Webseite im privaten Fenster (Strg + Shift + N) oder mit Strg + F5 testen – GitHub Pages kann bis zu 10 Minuten zwischengespeichert sein.
 
+### 4. Neue Anordnung & Weiss als Malfarbe
+**Wunsch:** Farben und Menüpunkte links und rechts vom Bild, damit man nicht scrollen muss. Hintergrund hellgrau, damit Weiss als Farbe genutzt werden kann.
+
+**Umsetzung:**
+- **Links** die Farben (inkl. eigene Farbe), **in der Mitte** das Raster, **rechts** die Werkzeuge (Radiergummi, Alles löschen, Rastergrösse, Mitte anzeigen, Speichern).
+- Das Raster passt sich der Bildschirmhöhe und -breite an, so dass auch 31 × 31 ohne Scrollen Platz hat.
+- Auf schmalen Bildschirmen (Handy, iPad hochkant) stehen Farben, Raster und Werkzeuge untereinander.
+- Leere Felder sind jetzt **hellgrau**. **Weiss** ist neu eine richtige Malfarbe (21 Farben).
+- Der Radiergummi macht Felder wieder leer (hellgrau).
+- Beim Speichern als PNG werden leere Felder **durchsichtig** (praktisch z.B. zum Einfügen in Word oder Präsentationen). Weiss gemalte Felder bleiben weiss.
+
 ### Ideen / offene Punkte
 - …

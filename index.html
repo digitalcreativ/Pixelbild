@@ -196,7 +196,7 @@
         justify-content: center;
       }
       #rechts h2, #rechts hr, .hinweis { display: none; }
-      .werkzeugwahl { grid-template-columns: repeat(5, auto); }
+      .werkzeugwahl { grid-template-columns: repeat(4, auto); }
       .werkzeugwahl .breit { grid-column: auto; }
       select { width: auto; }
     }
@@ -223,9 +223,8 @@
     <aside class="leiste" id="rechts">
       <h2>Zeichnen</h2>
       <div class="werkzeugwahl">
-        <button class="text werkzeug aktiv" data-form="stift" title="Feld für Feld malen">✏️ Stift</button>
+        <button class="text werkzeug aktiv breit" data-form="stift" title="Feld für Feld malen">✏️ Stift</button>
         <button class="text werkzeug" data-form="kreis" title="Kreis zeichnen">⭕ Kreis</button>
-        <button class="text werkzeug" data-form="stern" title="Stern zeichnen">⭐ Stern</button>
         <button class="text werkzeug" data-form="herz" title="Herz zeichnen">❤️ Herz</button>
         <button class="text werkzeug breit" data-form="radierer" title="Felder wieder leer machen">🧽 Radiergummi</button>
       </div>
@@ -396,8 +395,8 @@
       }
     }
 
-    // ---------- Formen: Kreis, Stern, Herz ----------
-    // Werkzeug: 'stift', 'radierer', 'kreis', 'stern' oder 'herz'
+    // ---------- Formen: Kreis, Herz ----------
+    // Werkzeug: 'stift', 'radierer', 'kreis' oder 'herz'
     let form = 'stift';
     const ausgefuellt = document.getElementById('ausgefuellt');
 
@@ -426,13 +425,6 @@
       ]);
     }
 
-    // Stern: 5 Zacken, abwechselnd aussen (1) und innen (0.45)
-    const STERN = normalisieren(Array.from({ length: 10 }, (_, i) => {
-      const r = i % 2 === 0 ? 1 : 0.45;
-      const w = -Math.PI / 2 + i * Math.PI / 5;
-      return [r * Math.cos(w), r * Math.sin(w)];
-    }));
-
     // Herz: bekannte Herzkurve (y umgedreht, weil am Bildschirm y nach unten zählt)
     const HERZ = normalisieren(Array.from({ length: 120 }, (_, i) => {
       const t = i / 120 * 2 * Math.PI;
@@ -455,7 +447,6 @@
     // Liegt der Punkt (u, v) – beide zwischen -1 und 1 – in der Form?
     function istInForm(art, u, v) {
       if (art === 'kreis') return u * u + v * v <= 1.0001;
-      if (art === 'stern') return imVieleck(u, v, STERN);
       if (art === 'herz') return imVieleck(u, v, HERZ);
       return false;
     }

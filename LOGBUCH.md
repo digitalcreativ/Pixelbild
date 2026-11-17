@@ -75,6 +75,8 @@ Repository: https://github.com/digitalcreativ/Pixelbild
 - Formen werden in der gewählten Farbe gemalt.
 - Bei sehr kleinen Formen (wenige Felder) werden Stern und Herz nur grob erkennbar – dafür ist das Raster zu grob.
 
+**Stern wieder entfernt:** Der Stern sah bei den meisten Rastergrössen nicht schön aus (zu wenige Felder für die feinen Zacken). Es bleiben **Kreis** und **Herz**.
+
 **Fehler & Korrektur:** Beim Testen «blieb der Radiergummi hängen»: Nach dem Radieren wurde auch mit Stift oder Formen weiter radiert. Grund: Der Radiergummi war intern eine «Farbe» und blieb aktiv, auch wenn man ein anderes Werkzeug wählte. Lösung: Der Radiergummi ist jetzt ein eigenes Werkzeug neben Stift, Kreis, Stern und Herz. Wählt man ein anderes Werkzeug oder klickt man auf eine Farbe, ist der Radiergummi aus.
 
 ### Ideen / offene Punkte

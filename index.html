@@ -243,20 +243,67 @@
       }
     }
 
-    // Wurde schon etwas gemalt?
-    function hatInhalt() {
-      return [...document.querySelectorAll('.feld')].some(f =>
-        f.style.background && f.style.background !== 'rgb(255, 255, 255)' && f.style.background !== WEISS);
+    // ---------- Bild beim Ändern der Rastergrösse anpassen ----------
+    // Farbe eines Feldes lesen (null = weiss / leer)
+    function farbeVon(feld) {
+      const c = feld.style.backgroundColor;
+      return (!c || c === 'rgb(255, 255, 255)') ? null : c;
     }
+
+    // Aktuelles Bild als Liste von Farben speichern
+    function bildLesen() {
+      return { n: groesse, farben: [...raster.children].map(farbeVon) };
+    }
+
+    // Bild von alter auf neue Grösse umrechnen:
+    // Jedes neue Feld schaut, welche alten Felder es überdeckt (und wie stark).
+    // Ist mindestens 30 % davon farbig, bekommt es die häufigste Farbe, sonst bleibt es weiss.
+    function bildSkalieren(alt, n) {
+      const N = alt.n;
+      const faktor = N / n;
+      const neu = [];
+      for (let z = 0; z < n; z++) {
+        for (let s = 0; s < n; s++) {
+          const y0 = z * faktor, y1 = (z + 1) * faktor;
+          const x0 = s * faktor, x1 = (s + 1) * faktor;
+          const anteile = {};
+          let farbig = 0;
+          for (let az = Math.floor(y0); az < Math.min(N, Math.ceil(y1)); az++) {
+            const h = Math.min(y1, az + 1) - Math.max(y0, az);
+            for (let as = Math.floor(x0); as < Math.min(N, Math.ceil(x1)); as++) {
+              const w = Math.min(x1, as + 1) - Math.max(x0, as);
+              const c = alt.farben[az * N + as];
+              if (c) {
+                anteile[c] = (anteile[c] || 0) + w * h;
+                farbig += w * h;
+              }
+            }
+          }
+          let beste = null, max = 0;
+          for (const c in anteile) {
+            if (anteile[c] > max) { max = anteile[c]; beste = c; }
+          }
+          neu.push(farbig >= 0.3 * faktor * faktor ? beste : null);
+        }
+      }
+      return neu;
+    }
+
+    // Das Bild, von dem aus umgerechnet wird. Solange nicht weitergemalt wird,
+    // wird immer vom Original aus umgerechnet: 31 → 19 → 31 ergibt wieder das Originalbild.
+    let vorlage = null;
+    let geaendert = false;   // wurde seit dem letzten Umrechnen gemalt?
 
     const groesseWahl = document.getElementById('groesseWahl');
     groesseWahl.addEventListener('change', () => {
       const neu = Number(groesseWahl.value);
-      if (hatInhalt() && !confirm('Beim Ändern der Rastergrösse wird das Bild gelöscht. Trotzdem ändern?')) {
-        groesseWahl.value = groesse;   // Auswahl zurücksetzen
-        return;
-      }
+      if (geaendert || !vorlage) vorlage = bildLesen();
       rasterAufbauen(neu);
+      const farben = bildSkalieren(vorlage, neu);
+      [...raster.children].forEach((feld, i) => {
+        if (farben[i]) feld.style.background = farben[i];
+      });
+      geaendert = false;
     });
 
     rasterAufbauen(groesse);
@@ -265,6 +312,7 @@
     function malen(feld) {
       if (feld && feld.classList.contains('feld')) {
         feld.style.background = aktuelleFarbe;
+        geaendert = true;
       }
     }
 
@@ -286,6 +334,7 @@
     document.getElementById('loeschen').addEventListener('click', () => {
       if (confirm('Wirklich das ganze Bild löschen?')) {
         document.querySelectorAll('.feld').forEach(f => f.style.background = WEISS);
+        geaendert = true;
       }
     });
 

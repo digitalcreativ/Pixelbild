@@ -51,5 +51,7 @@ Repository: https://github.com/digitalcreativ/Pixelbild
 - Das Tool merkt sich das Originalbild: Wechselt man z.B. 31 → 19 → 31, ohne dazwischen zu malen, erscheint wieder genau das Originalbild. Sobald man im neuen Raster weitermalt, gilt das neue Bild als Original.
 - Beim Verkleinern gehen feine Details verloren (z.B. dünne Linien werden manchmal unterbrochen oder etwas dicker).
 
+**Stolperstein:** Nach dem Push erschien weiterhin die alte Meldung «Bild wird gelöscht». Grund: Der Browser zeigte noch die alte Version (alte Kopie im OneDrive-Ordner bzw. zwischengespeicherte Webseite). Lösung: alte Kopie durch die neue Version ersetzt; Webseite im privaten Fenster (Strg + Shift + N) oder mit Strg + F5 testen – GitHub Pages kann bis zu 10 Minuten zwischengespeichert sein.
+
 ### Ideen / offene Punkte
 - …

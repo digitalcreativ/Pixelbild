@@ -108,6 +108,12 @@
 
     button.text:hover { background: #eaeaea; }
 
+    button.text:disabled {
+      opacity: 0.4;
+      cursor: default;
+      background: #fff;
+    }
+
     .werkzeugwahl .breit { grid-column: span 2; }
 
     /* Zeichenwerkzeuge: Stift und Formen */
@@ -231,6 +237,7 @@
       <label><input type="checkbox" id="ausgefuellt"> Form ausfüllen</label>
       <p class="hinweis">Formen: von einer Ecke zur gegenüberliegenden ziehen.</p>
       <hr>
+      <button class="text" id="zurueck" title="Letzten Schritt rückgängig machen (Strg + Z)" disabled>↩️ Zurück</button>
       <button class="text" id="loeschen">🗑️ Alles löschen</button>
       <hr>
       <h2>Raster</h2>
@@ -245,6 +252,7 @@
       <h2>Speichern</h2>
       <button class="text" id="exportieren">💾 Als PNG speichern</button>
       <label><input type="checkbox" id="linienExport"> mit Rasterlinien</label>
+      <label><input type="checkbox" id="farblisteExport" checked> mit Farbliste</label>
     </aside>
 
   </div>
@@ -375,6 +383,7 @@
 
     const groesseWahl = document.getElementById('groesseWahl');
     groesseWahl.addEventListener('change', () => {
+      schrittMerken(bildLesen());
       const neu = Number(groesseWahl.value);
       if (geaendert || !vorlage) vorlage = bildLesen();
       rasterAufbauen(neu);
@@ -502,6 +511,7 @@
       const feld = e.target.classList.contains('feld') ? e.target : null;
       if (!feld) return;
       maltGerade = true;
+      bildVorher = bildLesen();   // für «Zurück»
       if (istFreihand()) {
         malen(feld);
       } else {
@@ -519,33 +529,106 @@
     });
 
     function malenBeenden() {
+      // Hat sich durch den Strich / die Form etwas verändert? Dann als Schritt merken.
+      if (bildVorher) {
+        const jetzt = bildLesen();
+        if (jetzt.farben.join('|') !== bildVorher.farben.join('|')) schrittMerken(bildVorher);
+      }
+      bildVorher = null;
       maltGerade = false;
       startFeld = null;
       schnappschuss = null;
     }
+
+    // ---------- Zurück: die letzten 3 Schritte rückgängig machen ----------
+    const MAX_SCHRITTE = 3;
+    const verlauf = [];          // gespeicherte Bilder vor den letzten Schritten
+    let bildVorher = null;       // Bild vor dem aktuellen Strich
+    const zurueckKnopf = document.getElementById('zurueck');
+
+    function schrittMerken(bild) {
+      verlauf.push(bild);
+      if (verlauf.length > MAX_SCHRITTE) verlauf.shift();   // ältesten Schritt vergessen
+      zurueckKnopf.disabled = false;
+    }
+
+    function zurueck() {
+      const bild = verlauf.pop();
+      if (!bild) return;
+      if (bild.n !== groesse) {          // Rastergrösse wurde geändert → zurückstellen
+        rasterAufbauen(bild.n);
+        groesseWahl.value = bild.n;
+      }
+      [...raster.children].forEach((feld, i) => feld.style.background = bild.farben[i] || '');
+      geaendert = true;
+      zurueckKnopf.disabled = verlauf.length === 0;
+    }
+
+    zurueckKnopf.addEventListener('click', zurueck);
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        zurueck();
+      }
+    });
     window.addEventListener('pointerup', malenBeenden);
     window.addEventListener('pointercancel', malenBeenden);
 
     // ---------- Buttons ----------
     document.getElementById('loeschen').addEventListener('click', () => {
       if (confirm('Wirklich das ganze Bild löschen?')) {
+        schrittMerken(bildLesen());
         document.querySelectorAll('.feld').forEach(f => f.style.background = '');
         geaendert = true;
       }
     });
 
+    // Name einer Farbe für die Farbliste ("rgb(230, 57, 70)" → "Rot")
+    function hexZuRgb(hex) {
+      const z = parseInt(hex.slice(1), 16);
+      return `rgb(${(z >> 16) & 255}, ${(z >> 8) & 255}, ${z & 255})`;
+    }
+    function farbName(rgb) {
+      const treffer = FARBEN.find(f => hexZuRgb(f.wert) === rgb);
+      if (treffer) return treffer.name;
+      const hex = '#' + rgb.match(/\d+/g).slice(0, 3)
+        .map(n => Number(n).toString(16).padStart(2, '0')).join('');
+      return `Eigene ${hex}`;
+    }
+
     // ---------- Export als PNG (leere Felder werden durchsichtig) ----------
     document.getElementById('exportieren').addEventListener('click', () => {
       const PIXEL = 20;   // jedes Feld wird im Bild 20 x 20 Pixel gross
       const mitLinien = document.getElementById('linienExport').checked;
+      const mitFarbliste = document.getElementById('farblisteExport').checked;
+
+      // Gebrauchte Farben zählen (leere Felder zählen nicht)
+      const zaehler = new Map();
+      document.querySelectorAll('.feld').forEach(feld => {
+        const farbe = farbeVon(feld);
+        if (farbe) zaehler.set(farbe, (zaehler.get(farbe) || 0) + 1);
+      });
+      const liste = [...zaehler.entries()]
+        .map(([farbe, anzahl]) => ({ farbe, anzahl, name: farbName(farbe) }))
+        .sort((a, b) => b.anzahl - a.anzahl);
+      const farblisteZeigen = mitFarbliste && liste.length > 0;
+
+      // Grösse des Bildes: Pixelbild oben, Farbliste darunter
+      const BILD = groesse * PIXEL;
+      const SPALTE = 190, ZEILE = 30, RAND = 16, TITEL = 30;
+      const breite = farblisteZeigen ? Math.max(BILD, 2 * SPALTE + 2 * RAND) : BILD;
+      const spalten = Math.max(1, Math.floor((breite - 2 * RAND) / SPALTE));
+      const zeilen = Math.ceil(liste.length / spalten);
+      const listenHoehe = farblisteZeigen ? RAND + TITEL + zeilen * ZEILE + RAND : 0;
 
       const canvas = document.createElement('canvas');
-      canvas.width = groesse * PIXEL;
-      canvas.height = groesse * PIXEL;
+      canvas.width = breite;
+      canvas.height = BILD + listenHoehe;
       const ctx = canvas.getContext('2d');
+      const bildX = Math.floor((breite - BILD) / 2);   // Bild mittig
 
       document.querySelectorAll('.feld').forEach(feld => {
-        const x = feld.dataset.spalte * PIXEL;
+        const x = bildX + feld.dataset.spalte * PIXEL;
         const y = feld.dataset.zeile * PIXEL;
         const farbe = farbeVon(feld);
         if (farbe) {
@@ -558,6 +641,30 @@
           ctx.strokeRect(x + 0.5, y + 0.5, PIXEL - 1, PIXEL - 1);
         }
       });
+
+      // Farbliste: Farbfeld + Name + Anzahl Pixel
+      if (farblisteZeigen) {
+        const y0 = BILD;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, y0, breite, listenHoehe);
+        ctx.fillStyle = '#222';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold 15px system-ui, sans-serif';
+        const gesamt = liste.reduce((summe, f) => summe + f.anzahl, 0);
+        ctx.fillText(`Farben (${gesamt} Pixel gesamt)`, RAND, y0 + RAND + TITEL / 2 - 4);
+        ctx.font = '14px system-ui, sans-serif';
+        liste.forEach((f, i) => {
+          const x = RAND + (i % spalten) * SPALTE;
+          const y = y0 + RAND + TITEL + Math.floor(i / spalten) * ZEILE;
+          ctx.fillStyle = f.farbe;
+          ctx.fillRect(x, y + 3, 22, 22);
+          ctx.strokeStyle = '#888';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x + 0.5, y + 3.5, 21, 21);
+          ctx.fillStyle = '#222';
+          ctx.fillText(`${f.name}: ${f.anzahl}`, x + 30, y + 14);
+        });
+      }
 
       // Bild als Datei herunterladen
       canvas.toBlob(blob => {

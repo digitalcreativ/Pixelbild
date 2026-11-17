@@ -79,5 +79,26 @@ Repository: https://github.com/digitalcreativ/Pixelbild
 
 **Fehler & Korrektur:** Beim Testen «blieb der Radiergummi hängen»: Nach dem Radieren wurde auch mit Stift oder Formen weiter radiert. Grund: Der Radiergummi war intern eine «Farbe» und blieb aktiv, auch wenn man ein anderes Werkzeug wählte. Lösung: Der Radiergummi ist jetzt ein eigenes Werkzeug neben Stift, Kreis, Stern und Herz. Wählt man ein anderes Werkzeug oder klickt man auf eine Farbe, ist der Radiergummi aus.
 
+### 6. Farbliste im PNG
+**Wunsch:** Im gespeicherten PNG sollen die gebrauchten Farben angezeigt werden – mit der Anzahl Pixel pro Farbe.
+
+**Umsetzung:**
+- Neue Option **«mit Farbliste»** beim Speichern (standardmässig angekreuzt).
+- Unter dem Pixelbild erscheint ein weisser Bereich mit dem Titel «Farben (… Pixel gesamt)» und für jede gebrauchte Farbe: **Farbfeld, Name und Anzahl Pixel** (z.B. «Rot: 23»).
+- Die Farben sind nach Häufigkeit sortiert (meistgebrauchte zuerst).
+- Farben aus der Palette erscheinen mit ihrem Namen, eigene Farben als «Eigene #8a2be2».
+- Leere (hellgraue) Felder werden nicht gezählt.
+- Praktisch z.B. zum Nachbauen mit Bügelperlen, Steckperlen oder Mosaik: Man weiss gleich, wie viele Teile man von jeder Farbe braucht.
+
+### 7. Zurück-Knopf
+**Wunsch:** Die letzten drei Schritte rückgängig machen können.
+
+**Umsetzung:**
+- Neuer Knopf **«↩️ Zurück»** rechts (über «Alles löschen»). Zusätzlich funktioniert die Tastenkombination **Strg + Z**.
+- Das Tool merkt sich die **letzten 3 Schritte**. Ein Schritt ist: ein Strich mit Stift oder Radiergummi (vom Drücken bis zum Loslassen), eine Form, «Alles löschen» oder ein Wechsel der Rastergrösse.
+- Wird die Rastergrösse zurückgenommen, stellt sich auch die Auswahl wieder auf die alte Grösse.
+- Klicks, die nichts verändern (z.B. gleiche Farbe auf gleiches Feld), zählen nicht als Schritt.
+- Ist nichts mehr rückgängig zu machen, wird der Knopf blass dargestellt.
+
 ### Ideen / offene Punkte
 - …

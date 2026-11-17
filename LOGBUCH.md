@@ -64,5 +64,18 @@ Repository: https://github.com/digitalcreativ/Pixelbild
 - Der Radiergummi macht Felder wieder leer (hellgrau).
 - Beim Speichern als PNG werden leere Felder **durchsichtig** (praktisch z.B. zum Einfügen in Word oder Präsentationen). Weiss gemalte Felder bleiben weiss.
 
+### 5. Formen-Werkzeug: Kreis, Stern, Herz
+**Wunsch:** Einen exakten Kreis zeichnen können – und weitere Formen wie Stern und Herz.
+
+**Umsetzung:**
+- Rechts unter «Zeichnen» gibt es neu die Werkzeuge **✏️ Stift**, **⭕ Kreis**, **⭐ Stern** und **❤️ Herz**. Der Stift ist das normale Malen.
+- Form zeichnen: Form wählen und mit Maus/Finger **von einer Ecke zur gegenüberliegenden ziehen**. Während dem Ziehen sieht man eine Vorschau, beim Loslassen wird die Form gemalt.
+- Die Form liegt immer in einem **Quadrat** – so bleibt der Kreis rund und die Formen werden nicht verzerrt.
+- Mit **«Form ausfüllen»** wird die Form ganz gefüllt, sonst nur der Umriss gezeichnet.
+- Formen werden in der gewählten Farbe gemalt.
+- Bei sehr kleinen Formen (wenige Felder) werden Stern und Herz nur grob erkennbar – dafür ist das Raster zu grob.
+
+**Fehler & Korrektur:** Beim Testen «blieb der Radiergummi hängen»: Nach dem Radieren wurde auch mit Stift oder Formen weiter radiert. Grund: Der Radiergummi war intern eine «Farbe» und blieb aktiv, auch wenn man ein anderes Werkzeug wählte. Lösung: Der Radiergummi ist jetzt ein eigenes Werkzeug neben Stift, Kreis, Stern und Herz. Wählt man ein anderes Werkzeug oder klickt man auf eine Farbe, ist der Radiergummi aus.
+
 ### Ideen / offene Punkte
 - …
